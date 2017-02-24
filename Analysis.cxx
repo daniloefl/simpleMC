@@ -1,3 +1,9 @@
+///
+/// Analysis software that reads text file produced
+/// by generate and makes a ROOT file for plotting.
+///
+/// @author Danilo Ferreira de Lima <daniloefl@gmail.com>
+
 #include <iostream>
 #include <fstream>
 #include <string>
