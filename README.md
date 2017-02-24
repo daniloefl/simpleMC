@@ -32,6 +32,9 @@ collisions to simulate, the -E flag indicates the energy of each colliding beam 
 indicates that the events should be unweighted, so that each simulation has the same weight and
 resembles a real collision.
 
+One particularly interesting option is -s [VALUE], which varies the centre-of-mass energy
+randomly by +/- [VALUE]. It allows for a scan of the Z mass peak.
+
 One can see more information on both commands in their help flag:
 
 ```
