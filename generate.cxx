@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
   for (nEvents = 0; nEvents < maxEvents; ++nEvents) {
     //double Ebv = Eb + (2*randomDouble()-1)*10;
     double Ebv = Eb;
-    if (randomCoM > 0) Ebv += (rand.Uniform(randomCoM)-0.5);
+    if (randomCoM > 0) Ebv += (rand.Uniform(1)-0.5)*randomCoM;
 
     if (nEvents%10000 == 0)
       std::cout << "Raw events: " << nEvents << ", pass selection: " << passSelection << ", pass unweighting: " << passUnweight << ", this CoM E = " << 2*Ebv << " GeV" << std::endl;
