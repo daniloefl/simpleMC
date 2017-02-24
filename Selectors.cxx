@@ -2,7 +2,6 @@
 #include "TLorentzVector.h"
 
 using namespace std;
-using namespace HepMC;
 
 Selector::Selector() {
 }
@@ -16,9 +15,9 @@ MySelector::MySelector() {
 MySelector::~MySelector() {
 }
 
-bool MySelector::operator()(std::vector<GenParticle> &o) {
-  TLorentzVector vo1(o[0].momentum().px(), o[0].momentum().py(), o[0].momentum().pz(), o[0].momentum().e());
-  TLorentzVector vo2(o[1].momentum().px(), o[1].momentum().py(), o[1].momentum().pz(), o[1].momentum().e());
+bool MySelector::operator()(std::vector<TLorentzVector> &o) {
+  TLorentzVector vo1 = o[0];
+  TLorentzVector vo2 = o[1];
 
   // each final electron has > 5 GeV
   if (vo1.Perp() < 5 || vo2.Perp() < 5) return false;

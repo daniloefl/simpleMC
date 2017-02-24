@@ -1,3 +1,8 @@
+///
+/// Main generator of events, outputting a HepMC file
+/// with the initial and final state configurations.
+///
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -5,12 +10,7 @@
 #include <cmath>
 #include <map>
 
-#include "HepMC/IO_GenEvent.h"
-#include "HepMC/GenEvent.h"
-#include "HepMC/GenParticle.h"
-
 #include "TLorentzVector.h"
-
 #include "TRandom3.h"
 
 #include "Selectors.h"
@@ -21,29 +21,111 @@
 
 #include "Unweight.h"
 
+#include <unistd.h>
+#include <getopt.h>
+
+#include <algorithm>
+#include <cctype>
+
 using namespace std;
-using namespace HepMC;
+
+void showHelp() {
+  std::cout << "This program simulates scattering of electron-positron -> Z -> e+e-." << std::endl
+            << "All four-momenta are written, one per line of the output text file." << std::endl;
+  std::cout << std::endl;
+  std::cout << "Usage:" << std::endl;
+  std::cout << "generate [options]" << std::endl
+            << "where [options] are one of:" << std::endl
+            << std::endl
+            << "   -h  | --help                Show this help message." << std::endl
+            << "   -f  | --file [FILE]         Write results in file [FILE]." << std::endl
+            << "   -e  | --events [N]          Produce [N] events before unweighting." << std::endl
+            << "   -E  | --energy [VALUE]      Simulate electron-positron collisions with center-of-mass energy given by [VALUE] GeV." << std::endl
+            << "   -u  | --unweight            If this flag is sent, apply unweighting." << std::endl
+            << "   -p  | --process [NAME]      'Bhabha' for the electron-positron -> photon -> electron-positron QED scattering and 'EWK' to also include Z boson mediators." << std::endl
+            << "   -s  | --scanCoM [SIGMA]     Vary centre-of-mass according to a uniform distribution of width [SIGMA]." << std::endl
+            << std::endl;
+}
 
 int main(int argc, char *argv[]) {
 
-  std::string outfile = "input.hepmc2g";
+  std::string outfile = "events.txt";
   int maxEvents = (int) 1e6;
+  double Eb = 45; // beam energy [GeV]
+  double randomCoM = 0; // CoM std. deviation
+  std::string process = "ewk";
+
+  // if this is done, the weights are set to 1
+  // this way statistical fluctuations are minimised
+  // very inefficient, but improves statistical uncertainty
+  bool doUnweighting = false;
+
+  int c;
+  int digit_optind = 0;
+
+  while (true) {
+    int this_option_optind = optind ? optind : 1;
+    int option_index = 0;
+    static struct option long_options[] = {
+            {"help",      no_argument,       0, 'h'},
+            {"file",      required_argument, 0, 'f'},
+            {"events",    required_argument, 0, 'e'},
+            {"energy",    required_argument, 0, 'E'},
+            {"unweigh",   no_argument,       0, 'u'},
+            {"scanCoM",   required_argument, 0, 's'},
+            {"process",   required_argument, 0, 'p'},
+            {0,         0,                 0,  0 }
+        };
+
+    c = getopt_long(argc, argv, "f:e:E:us:p:h",
+                    long_options, &option_index);
+    if (c == -1)
+      break;
+
+    switch (c) {
+      case 'h':
+        showHelp();
+        exit(0);
+        break;
+
+      case 'f':
+        outfile = optarg;
+        break;
+
+      case 'e':
+        maxEvents = atoi(optarg);
+        break;
+
+      case 'E':
+        Eb = atof(optarg);
+        break;
+
+      case 'u':
+        doUnweighting = true;
+        break;
+
+      case 's':
+        randomCoM = atof(optarg);
+        break;
+
+      case 'p':
+        process = optarg;
+        std::transform(process.begin(), process.end(), process.begin(), ::tolower);
+        break;
+
+      case '?':
+      default:
+        showHelp();
+        exit(0);
+        break;
+    }
+  }
 
   int nEvents = 0;
   int passSelection = 0;
 
   // beam parameters
-  // should read from user
-  //double Eb = 30; // beam energy
-  double Eb = 45; // beam energy
   double s = 4*Eb*Eb; // s = center-of-mass energy^2
-  int beam1id = -11; // positron
-  int beam2id = 11;  // electron
-
-  // if this is done, the weights are set to 1
-  // this way statistical fluctuations are minimised
-  // very inefficient, but improves statistical uncertainty
-  bool doUnweighting = true;
 
   std::ofstream ostr(outfile.c_str());
   if( !ostr || !ostr.good() ) {
@@ -51,81 +133,69 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  // calculate cross section
-  GenParticle *b1 = new GenParticle;
-  GenParticle *b2 = new GenParticle;
-  b1->set_momentum(FourVector(0,0,-Eb,Eb));
-  b2->set_momentum(FourVector(0,0, Eb,Eb));
-  b1->set_pdg_id(beam1id);
-  b1->set_status(0); // CHECK THE CORRECT VALUE FOR INITIAL STATE PARTICLES
-  b1->set_pdg_id(beam2id);
-  b2->set_status(0); // CHECK
+  // beam four-momenta
+  // e+ e- -> X
+  TLorentzVector b1(0, 0,  Eb, Eb);
+  TLorentzVector b2(0, 0, -Eb, Eb);
 
-  //BhabhaProcess p; // interaction to calculate: should be sent by user
-  ProcessComp p;
-  MySelector sel;  // cuts to apply on p_T and eta: should be sent by user
+  Process *p = 0;
+  if (process == "ewk") {
+    p = new ProcessComp;    // calculates results by multiplying out gamma matrices
+  } else {
+    p = new BhabhaProcess;  // has the cross section distribution already written down
+  }
+  MySelector sel;       // cuts to apply
 
   // calculate cross section
   int iterations = 50000;
-  //int iterations = -1;
   double sig_error = 0;
   std::cout << "Full cross section (after cuts in Selector) calculated at CoM energy = " << 2*Eb << " GeV" << std::endl;
-  double sigma = p.getSigma(b1, b2, iterations, sig_error, sel);
+  double sigma = p->getSigma(b1, b2, iterations, sig_error, sel);
   std::cout << "Sigma = " << sigma << " +/- " << sig_error << "  (" << 100*sig_error/sigma << "%) femtobarns [fb]" << std::endl;
 
-  Unweight u(p);
+  Unweight u(*p);
   double maxw = 0;
   if (doUnweighting) {
     maxw = u.getMax(b1, b2, iterations, sel);
     std::cout << "Maximum weight = " << maxw << " (to be used for unweighting)"<< std::endl;
   }
 
-
-  delete b1;
-  delete b2;
+  TRandom3 rand;
 
   int passUnweight = 0;
 
-  HepMC::GenEvent evt;
+  ostr << "#" << std::setw(20) << "sqrt(s)" << std::setw(20) << "alpha_s" << std::setw(20) << "alpha_qed"
+       << std::setw(20) << "weight"
+       << std::setw(20) << "beam1_px" << std::setw(20) << "beam1_py" << std::setw(20) << "beam1_pz" << std::setw(20) << "beam1_E"
+       << std::setw(20) << "beam2_px" << std::setw(20) << "beam2_py" << std::setw(20) << "beam2_pz" << std::setw(20) << "beam2_E"
+       << std::setw(20) << "final1_px" << std::setw(20) << "final1_py" << std::setw(20) << "final1_pz" << std::setw(20) << "final1_E"
+       << std::setw(20) << "final2_px" << std::setw(20) << "final2_py" << std::setw(20) << "final2_pz" << std::setw(20) << "final2_E" << std::endl;
+
   std::cout << "In event loop, the CoM energy is varied by +/- 20 GeV around the nominal of " << 2*Eb << std::endl;
   for (nEvents = 0; nEvents < maxEvents; ++nEvents) {
-    evt.clear();
-    double Ebv = Eb + (2*randomDouble()-1)*10;
+    //double Ebv = Eb + (2*randomDouble()-1)*10;
+    double Ebv = Eb;
+    if (randomCoM > 0) Ebv += rand.Uniform(randomCoM)*0.5;
+
     if (nEvents%10000 == 0)
       std::cout << "Raw events: " << nEvents << ", pass selection: " << passSelection << ", pass unweighting: " << passUnweight << ", this CoM E = " << 2*Ebv << " GeV" << std::endl;
 
-    evt.set_signal_process_id(0); // set a some ID for the process
-    evt.set_event_number(nEvents);
-    evt.set_mpi(1); // multiple parton interactions
-
+    // energy scale
     double Q = std::sqrt(s);
-    evt.set_event_scale(Q); // set energy scale
 
-    // set scales
-    evt.set_alphaQCD(a_s);
-    evt.set_alphaQED(alpha_QED(s));
-
-    // set beam particles
-    GenParticle *beam1 = new GenParticle;
-    GenParticle *beam2 = new GenParticle;
-    beam1->set_momentum(FourVector(0,0,-Ebv,Ebv));
-    beam2->set_momentum(FourVector(0,0, Ebv,Ebv));
-    beam1->set_pdg_id(beam1id);
-    beam1->set_status(0); // CHECK
-    beam1->set_pdg_id(beam2id);
-    beam2->set_status(0); // CHECK
-    evt.set_beam_particles(beam1, beam2);
+    TLorentzVector beam1(0,0,-Ebv,Ebv);
+    TLorentzVector beam2(0,0,Ebv,Ebv);
 
     // now do the real work:
     // (only an example now)
     // (should check which process and generate phase space)
     // (for multiple processes, throw random number based on the cross
     //  section and then generate one process)
-    std::vector<GenParticle> out;
+    std::vector<TLorentzVector> out;
     double mcWeight = 0;
     // check if the cuts in p.select() pass. If they do, then accept
     // the event with weight mcWeight
-    if (!p.getOut(beam1, beam2, out, mcWeight, sel))
+    if (!p->getOut(beam1, beam2, out, mcWeight, sel))
       continue;
     // now we have the output particles out and the
     // weight for this event, w
@@ -136,8 +206,6 @@ int main(int argc, char *argv[]) {
     // if we should do unweighting, then compare the weight with the maximum weight
     if (doUnweighting) {
       if (!u.accept(mcWeight)) {
-        delete beam1;
-        delete beam2;
         continue;
       }
       // event was accepted, so set the weight to 1
@@ -147,32 +215,15 @@ int main(int argc, char *argv[]) {
       mcWeight = 1.0;
     }
 
-    // add main interaction vertex
-    GenVertex *v = new GenVertex;
-    // add particles
-    v->add_particle_in(beam1);
-    v->add_particle_in(beam2);
-    v->add_particle_out(new GenParticle(out[0]));
-    v->add_particle_out(new GenParticle(out[1]));
-    evt.add_vertex(v);
-    evt.set_signal_process_vertex(v);
-    evt.define_units(HepMC::Units::GEV, HepMC::Units::MM);
-
-    WeightContainer w;
-    w.push_back(mcWeight); // MC weight
-    w.push_back(0); // unused
-    w.push_back(1); // unweighting trials (to be used for normalisation if events are discarded when generated)
-    evt.weights() = w; // add weights
+    ostr << std::setw(20) << Q << std::setw(20) << a_s << std::setw(20) << alpha_QED(s)
+       << std::setw(20) << mcWeight
+       << std::setw(20) << beam1.Px() << std::setw(20) << beam1.Py() << std::setw(20) << beam1.Pz() << std::setw(20) << beam1.E()
+       << std::setw(20) << beam2.Px() << std::setw(20) << beam2.Py() << std::setw(20) << beam2.Pz() << std::setw(20) << beam2.E()
+       << std::setw(20) << out[0].Px() << std::setw(20) << out[0].Py() << std::setw(20) << out[0].Pz() << std::setw(20) << out[0].E()
+       << std::setw(20) << out[1].Px() << std::setw(20) << out[1].Py() << std::setw(20) << out[1].Pz() << std::setw(20) << out[1].E()
+       << std::endl;
 
     passUnweight += 1;
-
-    // write it in the file
-    //ascii_in >> evt;
-    try {
-      ostr << evt;
-    } catch (HepMC::IO_Exception& e) {
-      evt.clear();
-    }
 
   }
   std::cout << "Raw number of events generated: " << nEvents << " (100%)" << std::endl;
@@ -182,6 +233,9 @@ int main(int argc, char *argv[]) {
   std::cout << std::endl;
   std::cout << "Selection efficiency:           " << 100.0*((double) passSelection)/((double) nEvents) << "%" << std::endl;
   std::cout << "Unweighting efficiency:         " << 100.0*((double) passUnweight)/((double) passSelection) << "%" << std::endl;
+
+  if (p) delete p;
+
 
   return 0;
 }

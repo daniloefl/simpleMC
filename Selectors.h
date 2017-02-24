@@ -2,21 +2,21 @@
 #define SELECTORS_H
 
 #include <vector>
-#include "HepMC/GenParticle.h"
+#include "TLorentzVector.h"
 
 class Selector {
   public:
     Selector();
     virtual ~Selector();
-    virtual bool operator()(std::vector<HepMC::GenParticle> &o) = 0;
+    virtual bool operator()(std::vector<TLorentzVector> &o) = 0;
 };
 
 
-class MySelector : public Selector{
+class MySelector : public Selector {
   public:
     MySelector();
     virtual ~MySelector();
-    bool operator()(std::vector<HepMC::GenParticle> &o);
+    bool operator()(std::vector<TLorentzVector> &o);
 };
 
 #endif

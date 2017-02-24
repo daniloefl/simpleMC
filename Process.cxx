@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <vector>
-#include "HepMC/GenParticle.h"
 #include "TRandom.h"
 #include "TRandom3.h"
 
@@ -11,7 +10,6 @@
 #include "Helper.h"
 
 using namespace std;
-using namespace HepMC;
 
 int Process::getNdof() {
   return 2;
@@ -24,7 +22,7 @@ std::vector<double> Process::getRandom() {
 }
 
 
-double Process::getSigma(GenParticle *b1, GenParticle *b2, int n, double &error, Selector &select) {
+double Process::getSigma(TLorentzVector b1, TLorentzVector b2, int n, double &error, Selector &select) {
   std::cout << "Calculating the cross section ..." << std::endl;
   double sigma = 0;
   double passed = 0;
@@ -53,7 +51,7 @@ double Process::getSigma(GenParticle *b1, GenParticle *b2, int n, double &error,
 
         std::cout << "Iteration ["<<k<<"/"<<n<<"] sigma = " << sigma/((double)k) << " +/- " << error << " ("<<100*error/(sigma/((double) k)) <<"%) fb" << std::endl;
       }
-      std::vector<GenParticle> o;
+      std::vector<TLorentzVector> o;
       double w = 0;
       bool passes = getOut(b1, b2, o, w, select);
       if (passes) {
@@ -100,7 +98,7 @@ double Process::getSigma(GenParticle *b1, GenParticle *b2, int n, double &error,
 
         std::cout << "Iteration ["<<k<<" (until 0.5\% error)] sigma = " << sigma/((double) k) << " +/- " << error << " ("<<100*error/(sigma/((double)k)) <<"%) fb" << std::endl;
       }
-      std::vector<GenParticle> o;
+      std::vector<TLorentzVector> o;
       double w = 0;
       bool passes = getOut(b1, b2, o, w, select);
       if (passes) {
@@ -131,14 +129,14 @@ double Process::getSigma(GenParticle *b1, GenParticle *b2, int n, double &error,
 }
 
 
-double Process::getMaximumWeight(GenParticle *b1, GenParticle *b2, int n, Selector &select) {
+double Process::getMaximumWeight(TLorentzVector b1, TLorentzVector b2, int n, Selector &select) {
   //std::cout << "Calculating the maximum weight ..." << std::endl;
   double maxi = 0;
   for (int k = 0; k < n; ++k) {
     if (k != 0 && k%1000 == 0) {
       //std::cout << "["<<k<<"/"<<n<<"] max weight = " << maxi << std::endl;
     }
-    std::vector<GenParticle> o;
+    std::vector<TLorentzVector> o;
     double w = 0;
     bool passes = getOut(b1, b2, o, w, select);
     if (passes && w > maxi) maxi = w;
@@ -153,12 +151,9 @@ Process::~Process() {
 }
 
 
-void Process::getOut2to2(GenParticle *b1, GenParticle *b2, std::vector<double> &x, std::vector<GenParticle> &o) {
+void Process::getOut2to2(TLorentzVector vb1, TLorentzVector vb2, std::vector<double> &x, std::vector<TLorentzVector> &o) {
   // x values between 0 and 1
   // x vector size is getNdof()
-  TLorentzVector vb1(b1->momentum().px(), b1->momentum().py(), b1->momentum().pz(), b1->momentum().e());
-  TLorentzVector vb2(b2->momentum().px(), b2->momentum().py(), b2->momentum().pz(), b2->momentum().e());
-
   // use x vector to parametrise output state in 2->2
   // this would be the same for any 2->2 scattering
   // with same particles
@@ -183,8 +178,8 @@ void Process::getOut2to2(GenParticle *b1, GenParticle *b2, std::vector<double> &
   TLorentzVector vo2;
   vo2.SetPtEtaPhiM(p*std::sin(theta2), eta2, phi2, m);
 
-  o.push_back(GenParticle(FourVector(vo1.Px(), vo1.Py(), vo1.Pz(), vo1.E()), -11, 1));
-  o.push_back(GenParticle(FourVector(vo2.Px(), vo2.Py(), vo2.Pz(), vo2.E()),  11, 1));
+  o.push_back(vo1);
+  o.push_back(vo2);
 
   // this is the end of the final state calculation
   // this can be always the same for 2->2 processes so far (with adaptations in case of different masses)
@@ -201,10 +196,7 @@ double Process::factorial(double n) {
   return factorial(n-1);
 }
 
-double Process::getRAMBOPhaseSpace(GenParticle *b1, GenParticle *b2, std::vector<GenParticle> &o, std::vector<double> &masses, std::vector<int> &pid) {
-  TLorentzVector vb1(b1->momentum().px(), b1->momentum().py(), b1->momentum().pz(), b1->momentum().e());
-  TLorentzVector vb2(b2->momentum().px(), b2->momentum().py(), b2->momentum().pz(), b2->momentum().e());
-
+double Process::getRAMBOPhaseSpace(TLorentzVector vb1, TLorentzVector vb2, std::vector<TLorentzVector> &o, std::vector<double> &masses, std::vector<int> &pid) {
   double Ecm = vb1.E() + vb2.E();
   int n = masses.size();
   if (masses.size() != pid.size()) return -1;
@@ -243,7 +235,6 @@ double Process::getRAMBOPhaseSpace(GenParticle *b1, GenParticle *b2, std::vector
     double px = x*(qv[k].Px() + b.Px()*qv[k].E() + a*(b.Vect().Dot(qv[k].Vect()))*b.Px());
     double py = x*(qv[k].Py() + b.Py()*qv[k].E() + a*(b.Vect().Dot(qv[k].Vect()))*b.Py());
     double pz = x*(qv[k].Pz() + b.Pz()*qv[k].E() + a*(b.Vect().Dot(qv[k].Vect()))*b.Pz());
-    //o.push_back(GenParticle(FourVector(px,py,pz, p0),pid[k],1));
     plist.push_back(TLorentzVector(px,py,pz, p0));
   }
   // this is the wright from the RAMBO paper
@@ -287,7 +278,7 @@ double Process::getRAMBOPhaseSpace(GenParticle *b1, GenParticle *b2, std::vector
     double kz = xi*pz;
     double k0 = std::sqrt(std::pow(masses[k],2) + std::pow(xi,2)*(std::pow(p0,2) - std::pow(masses[k],2)));;
     //o.push_back(GenParticle(FourVector(kx,ky,kz, k0),pid[k],1));
-    o.push_back(GenParticle(FourVector(px,py,pz, p0),pid[k],1));
+    o.push_back(TLorentzVector(px, py, pz, p0)); // output particle
     mps *= (p0/k0);
     sumpr += (std::pow(px,2) + std::pow(py,2) + std::pow(pz,2))/p0;
     sumkr += (std::pow(kx,2) + std::pow(ky,2) + std::pow(kz,2))/k0;
@@ -297,11 +288,8 @@ double Process::getRAMBOPhaseSpace(GenParticle *b1, GenParticle *b2, std::vector
   return mps;
 }
 
-double Process::getFlux(GenParticle *b1, GenParticle *b2, std::vector<GenParticle> &o) {
-  TLorentzVector vb1(b1->momentum().px(), b1->momentum().py(), b1->momentum().pz(), b1->momentum().e());
-  TLorentzVector vb2(b2->momentum().px(), b2->momentum().py(), b2->momentum().pz(), b2->momentum().e());
-
-  TLorentzVector vo1(o[0].momentum().px(), o[0].momentum().py(), o[0].momentum().pz(), o[0].momentum().e());
+double Process::getFlux(TLorentzVector vb1, TLorentzVector vb2, std::vector<TLorentzVector> &o) {
+  TLorentzVector vo1 = o[0];
 
   // it only works for massless particles in 2->2!
   //double ps = 1.0/(8*M_PI); // only for 2 particles in FS
@@ -324,7 +312,7 @@ double Process::getFlux(GenParticle *b1, GenParticle *b2, std::vector<GenParticl
   return flux;
 }
 
-bool Process::getOut(GenParticle *b1, GenParticle *b2, std::vector<GenParticle> &o, double &w, Selector &select) {
+bool Process::getOut(TLorentzVector b1, TLorentzVector b2, std::vector<TLorentzVector> &o, double &w, Selector &select) {
   // old code only 2->2
   //std::vector<double> x = getRandom();
   //getOut2to2(b1, b2, x, o); // gets output state

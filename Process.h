@@ -1,12 +1,13 @@
 #ifndef PROCESS_H
 #define PROCESS_H
-#include "HepMC/GenParticle.h"
 
 #include <vector>
 #include "Selectors.h"
 
-// test process: Bhabha scattering
-// in the future will be a general class for any process
+#include "TLorentzVector.h"
+
+// Bhabha scattering
+// could be a general class for any process
 class Process {
   public:
     Process();
@@ -30,11 +31,11 @@ class Process {
     // generates output in case of a e+ e- -> e+ e-
     // with uniform random theta_1 and phi_1 between 0 and pi
     // this needs to be generalised for any other process (not only ee -> ee)
-    virtual void getOut2to2(HepMC::GenParticle *b1, HepMC::GenParticle *b2, std::vector<double> &x, std::vector<HepMC::GenParticle> &o);
+    virtual void getOut2to2(TLorentzVector b1, TLorentzVector b2, std::vector<double> &x, std::vector<TLorentzVector> &o);
 
     // calculates |M|^2 for e+ e- -> e+ e-
     // this should be overwritten for other processes
-    virtual double getAmp(HepMC::GenParticle *b1, HepMC::GenParticle *b2, std::vector<HepMC::GenParticle> &o) = 0;
+    virtual double getAmp(TLorentzVector b1, TLorentzVector b2, std::vector<TLorentzVector> &o) = 0;
 
     protected:
     // auxiliary function for PS calculation
@@ -42,21 +43,21 @@ class Process {
 
     public:
     // get flux factor
-    virtual double getFlux(HepMC::GenParticle *b1, HepMC::GenParticle *b2, std::vector<HepMC::GenParticle> &o);
+    virtual double getFlux(TLorentzVector b1, TLorentzVector b2, std::vector<TLorentzVector> &o);
 
     // use RAMBO to generate the phase space
-    virtual double getRAMBOPhaseSpace(HepMC::GenParticle *b1, HepMC::GenParticle *b2, std::vector<HepMC::GenParticle> &o, std::vector<double> &masses, std::vector<int> &pid);
+    virtual double getRAMBOPhaseSpace(TLorentzVector b1, TLorentzVector b2, std::vector<TLorentzVector> &o, std::vector<double> &masses, std::vector<int> &pid);
 
     // this should generate uniform output state (ie: with getRAMBOPhaseSpace)
     // and calculate the amplitude as a weight with getAmp
     // and then multiply it by the flux factor with getFlux
-    virtual bool getOut(HepMC::GenParticle *b1, HepMC::GenParticle *b2, std::vector<HepMC::GenParticle> &o, double &w, Selector &select);
+    virtual bool getOut(TLorentzVector b1, TLorentzVector b2, std::vector<TLorentzVector> &o, double &w, Selector &select);
 
     // integrate cross section
-    virtual double getSigma(HepMC::GenParticle *b1, HepMC::GenParticle *b2, int n, double &error, Selector &select);
+    virtual double getSigma(TLorentzVector b1, TLorentzVector b2, int n, double &error, Selector &select);
 
     // get maximum weight
-    virtual double getMaximumWeight(HepMC::GenParticle *b1, HepMC::GenParticle *b2, int n, Selector &select);
+    virtual double getMaximumWeight(TLorentzVector b1, TLorentzVector b2, int n, Selector &select);
 };
 
 

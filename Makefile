@@ -1,18 +1,13 @@
 CC         = g++
 LD         = g++
 
-#HEPMCDIR   = $(shell echo $(HEPMCDIR))
-HEPMCLIB   = -L$(HEPMCDIR)/lib -lHepMC
-
 ROOTLIB = $(shell root-config --libs)
 
-INCLUDES   = -I$(HEPMCDIR)/include
 INCLUDES  += $(shell root-config --cflags)
 
 CXXFLAGS  += -g -Wno-long-long -fPIC $(INCLUDES) -ftree-vectorize -ffast-math
 
 LDFLAGS    = 
-LDFLAGS   += $(HEPMCLIB)
 LDFLAGS   += $(ROOTLIB)
 
 OBJS_ANA = Analysis.o
@@ -34,6 +29,4 @@ generate: $(OBJS_GEN)
 clean:
 	rm -f *.o *.so Analysis generate
 
-distclean: clean
-	rm -f input.hepmc2g out.root
 
