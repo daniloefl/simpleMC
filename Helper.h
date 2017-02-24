@@ -7,16 +7,6 @@
 typedef std::complex<double> number;
 typedef std::valarray<number> matrix;
 
-class mmatrix {
-  public:
-    matrix m;
-    int i;
-    int j;
-    mmatrix(int ii = 1, int jj = 1);
-    mmatrix operator *(const mmatrix &b) const;
-    number toNumber() const;
-};
-
 extern double a_s;
 extern double a_e;
 

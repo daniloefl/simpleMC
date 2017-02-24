@@ -51,33 +51,6 @@ void init() {
     g5[13] = 1;
 }
 
-mmatrix::mmatrix(int ii, int jj)
-  : m(number(0,0), ii*jj) {
-  i = ii;
-  j = jj;
-}
-
-mmatrix mmatrix::operator *(const mmatrix &b) const {
-  matrix r(number(0,0), 1);
-  if (i == 1 && j == 1 && b.i == 1 && b.j == 1)
-    r[0] = this->m[0]*b.m[0];
-  else if (i == 1 && j == 4 && b.i == 4 && b.j == 4)
-    r = mul14_44(this->m, b.m);
-  else if (i == 4 && j == 4 && b.i == 4 && b.j == 4)
-    r = mul44_44(this->m, b.m);
-  else if (i == 1 && j == 4 && b.i == 4 && b.j == 1)
-    r = mul14_41(this->m, b.m);
-  else if (i == 4 && j == 4 && b.i == 4 && b.j == 1)
-    r = mul44_41(this->m, b.m);
-  r.i = i;
-  r.j = b.j;
-  return r;
-}
-
-number mmatrix::toNumber() const {
-  return m[0];
-}
-
 matrix gamma(int mu) {
   if (mu == 0) {
     return g0;
