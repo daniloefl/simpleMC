@@ -10,17 +10,20 @@
 
 using namespace std;
 
+// Always assuming 2->2 for now
 int Process::getNdof() {
   return 2;
 }
 
+/// generate random vector to scan phase space when generating phase space region in RAMBO
 std::vector<double> Process::getRandom() {
   std::vector<double> o;
   for (int l = 0; l < getNdof(); ++l) o.push_back(randomDouble());
   return o;
 }
 
-
+/// This calculates the actual cross section
+/// It just gets many amplitudes and sums their weights (including phase space factor and flux factor)
 double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Selector &select) {
   std::cout << "Calculating the cross section ..." << std::endl;
   double sigma = 0;
@@ -30,7 +33,7 @@ double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Sel
   error = 0;
   double mean = 0;
 
-  if (n > 0) {
+  if (n > 0) { /// If number of iterations was given
     for (int k = 0; k < n; ++k) {
       if (k != 0 && k%10000 == 0) {
         error = 0;
@@ -52,15 +55,16 @@ double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Sel
       }
       std::vector<FourVector> o;
       double w = 0;
-      bool passes = getOut(b1, b2, o, w, select);
+      bool passes = getOut(b1, b2, o, w, select); /// Get weight for this event here
       if (passes) {
         passed += 1;
-        sigma += w;
-        wlist.push_back(w);
+        sigma += w;                               /// And just add it
+        wlist.push_back(w);                       /// Keep track of it to get error
       }
     }
-    sigma /= (double) n;
+    sigma /= (double) n;                          /// Normalise by number of iterations
 
+    /// Calculate population variance to get error in estimate of cross section (it is just a mean)
     error = 0;
     mean = 0;
     for (int z = 0; z < wlist.size(); ++z) {
@@ -75,7 +79,7 @@ double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Sel
     if (wlist.size() > 1)
       error /= (double) (wlist.size() - 1);
     error = std::sqrt(error);
-  } else {
+  } else {     /// No reasonable number of iterations given --- iterate until error is smaller than 0.5%
     int k = 0;
     error = 999999;
     do {
@@ -99,7 +103,7 @@ double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Sel
       }
       std::vector<FourVector> o;
       double w = 0;
-      bool passes = getOut(b1, b2, o, w, select);
+      bool passes = getOut(b1, b2, o, w, select);     /// Sum weights
       if (passes) {
         sigma += w;
         wlist.push_back(w);
@@ -107,8 +111,9 @@ double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Sel
       k++;
     } while (error/(sigma/((double) k)) > 0.005); // require a 0.5% error
     n = k;
-    sigma /= (double) n;
+    sigma /= (double) n;                             /// Average them
 
+    /// Calculate population variance to get error in estimate of cross section (it is just a mean)
     error = 0;
     mean = 0;
     for (int z = 0; z < wlist.size(); ++z) {
@@ -128,6 +133,7 @@ double Process::getSigma(FourVector b1, FourVector b2, int n, double &error, Sel
 }
 
 
+/// Gets maximum weight to apply unweighting
 double Process::getMaximumWeight(FourVector b1, FourVector b2, int n, Selector &select) {
   //std::cout << "Calculating the maximum weight ..." << std::endl;
   double maxi = 0;
@@ -137,7 +143,7 @@ double Process::getMaximumWeight(FourVector b1, FourVector b2, int n, Selector &
     }
     std::vector<FourVector> o;
     double w = 0;
-    bool passes = getOut(b1, b2, o, w, select);
+    bool passes = getOut(b1, b2, o, w, select);  /// just throw many MC toys and keep track of maximum weight
     if (passes && w > maxi) maxi = w;
   }
   return maxi;
@@ -149,7 +155,11 @@ Process::Process() {
 Process::~Process() {
 }
 
-
+/// One can estimate the final state with only 2 angles in a 2->2 process
+/// Energy conservation provides 4 relations from the initial state to the final state vectors.
+/// The particles are assumed to be on-shell, so the mass is known, which imposes a constrain in the energy of each final state particle.
+/// Those count 6 equations on 8 unknowns, so only 2 angles are missing.
+/// The vector x is this vector of random unknowns, which will be the start of the MC iteration procedure.
 void Process::getOut2to2(FourVector vb1, FourVector vb2, std::vector<double> &x, std::vector<FourVector> &o) {
   // x values between 0 and 1
   // x vector size is getNdof()
@@ -195,6 +205,9 @@ double Process::factorial(double n) {
   return factorial(n-1);
 }
 
+/// This generates random output final states which happen with a probability proportional to the differential
+/// phase space element in special relativity.
+/// dPS = \int \delta^4(P - sum p_i) \prod d^{4}p_i \delta(p_i^2) \theta(p_i^0)
 double Process::getRAMBOPhaseSpace(FourVector vb1, FourVector vb2, std::vector<FourVector> &o, std::vector<double> &masses, std::vector<int> &pid) {
   double Ecm = vb1.E() + vb2.E();
   int n = masses.size();
@@ -236,7 +249,7 @@ double Process::getRAMBOPhaseSpace(FourVector vb1, FourVector vb2, std::vector<F
     double pz = x*(qv[k].Pz() + b.Pz()*qv[k].E() + a*(b.Vect().Dot(qv[k].Vect()))*b.Pz());
     plist.push_back(FourVector(px,py,pz, p0));
   }
-  // this is the wright from the RAMBO paper
+  // this is the weight from the RAMBO paper
   // it gives a phase space element of the form
   // dPS = \int \delta^4(P - sum p_i) \prod d^{4}p_i \delta(p_i^2) \theta(p_i^0)
   ps = std::pow(M_PI/2.0, n - 1)*std::pow(Ecm,2*n-4)/((double) (n-1) * std::pow(factorial(n-2),2));
@@ -287,6 +300,7 @@ double Process::getRAMBOPhaseSpace(FourVector vb1, FourVector vb2, std::vector<F
   return mps;
 }
 
+/// Flux factor is a beam factor needed to convert the ME result into a cross section
 double Process::getFlux(FourVector vb1, FourVector vb2, std::vector<FourVector> &o) {
   FourVector vo1 = o[0];
 
@@ -311,6 +325,8 @@ double Process::getFlux(FourVector vb1, FourVector vb2, std::vector<FourVector> 
   return flux;
 }
 
+/// This multiples the phase space element, the flux and the matrix element
+/// This is the main entrance for the simulation
 bool Process::getOut(FourVector b1, FourVector b2, std::vector<FourVector> &o, double &w, Selector &select) {
   // old code only 2->2
   //std::vector<double> x = getRandom();
