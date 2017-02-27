@@ -1,0 +1,5 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classProcess.html" title="Base class to model a scattering, to be overridden with a class that provides an implementation of ge..." alt="" coords="5,31,76,57"/>
+<area shape="rect" id="node2" href="$classBhabhaProcess.html" title="Calculates the matrix element for e+ e&#45; &#45;&gt; &#160;&#45;&gt; e+ e&#45;. " alt="" coords="124,5,239,32"/>
+<area shape="rect" id="node3" href="$classProcessComp.html" title="Calculates the matrix element of the e+ e&#45; &#45;&gt; Z/ &#45;&gt; e+ e&#45; process. " alt="" coords="129,56,234,83"/>
+</map>
