@@ -1,32 +1,39 @@
 CC         = g++
 LD         = g++
 
+OBJDIR   = obj
+SRCDIR   = src
+INCLUDES = -Iinc
+
+# only for Analysis
 ROOTLIB = $(shell root-config --libs)
+INCLUDES += $(shell root-config --cflags)
 
-INCLUDES  += $(shell root-config --cflags)
-
-CXXFLAGS  += -g -Wno-long-long -fPIC $(INCLUDES) -ftree-vectorize -ffast-math
+CXXFLAGS  += -g -Wno-long-long -fPIC -ftree-vectorize -ffast-math
 
 LDFLAGS    = 
-LDFLAGS   += $(ROOTLIB)
 
-OBJS_ANA = Analysis.o
-OBJS_GEN = generate.o Selectors.o Process.o Unweight.o BhabhaProcess.o Helper.o ProcessComp.o
+OBJS_ANA = $(addprefix $(OBJDIR)/, Analysis.o)
+OBJS_GEN = $(addprefix $(OBJDIR)/, generate.o Selectors.o Process.o Unweight.o BhabhaProcess.o Helper.o ProcessComp.o FourVector.o ThreeVector.o)
+
 
 OPT = -O4
 
-%.o: %.cxx
-	$(CC) -c $(OPT) $(CXXFLAGS) -o $@ $<
+$(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(OBJDIR)
+	$(CC) -c $(OPT) $(CXXFLAGS) $(INCLUDES) -o $@ $<
 
-all: Analysis generate
+all: generate Analysis
+
+$(OBJDIR):
+	mkdir $(OBJDIR)
 
 Analysis: $(OBJS_ANA)
-	$(LD) $(OPT) -o $@ $(OBJS_ANA) -L. $(LDFLAGS)
+	$(LD) $(OPT) -o $@ $(OBJS_ANA) -L. $(LDFLAGS) $(ROOTLIB)
 
 generate: $(OBJS_GEN)
 	$(LD) $(OPT) -o $@ $(OBJS_GEN) -L. $(LDFLAGS)
 
 clean:
-	rm -f *.o *.so Analysis generate
+	rm -f $(OBJDIR)/*.o Analysis generate
 
 

@@ -10,8 +10,10 @@ electron-positron scattering.
 Please, contact the author in case of doubts:
 Danilo Ferreira de Lima <daniloefl@gmail.com>
 
-It requires the ROOT software installed and accessible through root-config.
-It can be compiled with:
+The Analysis program can be used to convert the text file generated into a ROOT file
+for analysis into ROOT. However, the original MC generator is ROOT independent.
+Therefore, if one does not have access to ROOT, this can be used anyway with a different
+software being used to generate the plots.
 
 ```
 make
