@@ -33,6 +33,9 @@ Analysis: $(OBJS_ANA)
 generate: $(OBJS_GEN)
 	$(LD) $(OPT) -o $@ $(OBJS_GEN) -L. $(LDFLAGS)
 
+doxy:
+	doxygen doxygen.txt
+
 clean:
 	rm -f $(OBJDIR)/*.o Analysis generate
 

@@ -1,14 +1,10 @@
 # simpleMC
 
-README
--------------
-
 This program uses the Monte Carlo technique to simulate electron-positron scattering
 according to the probability distribution of either the Bhabha scattering or full electroweak
 electron-positron scattering.
 
-Please, contact the author in case of doubts:
-Danilo Ferreira de Lima <daniloefl@gmail.com>
+The code documentation can be found in <https://daniloefl.github.io/simpleMC/html/>.
 
 The Analysis program can be used to convert the text file generated into a ROOT file
 for analysis into ROOT. However, the original MC generator is ROOT independent.
@@ -75,4 +71,5 @@ where [options] are one of:
 The implementation of the cross section calculation can be seen in the ProcessComp.cxx
 and BhabhaProcess.cxx files.
 
-
+-------------------------
+Danilo Ferreira de Lima <daniloefl@gmail.com>
