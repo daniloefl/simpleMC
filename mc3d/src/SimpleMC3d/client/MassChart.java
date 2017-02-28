@@ -11,7 +11,7 @@ import java.util.*;
 public class MassChart extends GChart {
 
   // Constructor
-  PsiChart() {
+  MassChart() {
     setChartTitle("");
     setChartSize(800, 600);
     setLegendYShift(-150);
@@ -46,7 +46,7 @@ public class MassChart extends GChart {
    */
   public void getMassData(double [] x, double [] y) {
     getCurve(0).clearPoints();
-    for (int k = 0; k < calc.N; ++k) {
+    for (int k = 0; k < x.length; ++k) {
       getCurve(0).addPoint(x[k], y[k]);
     }
   }

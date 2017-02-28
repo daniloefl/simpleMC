@@ -83,7 +83,7 @@
     <delete dir="war/simplemc3d" failonerror="false" />
   </target>
 
-  <target name="docs" depends="jws" description="Generate documentation">
+  <target name="docs" description="Generate documentation">
     <javadoc use="true" destdir="docs" additionalparam="--allow-script-in-comments" sourcepath="src/SimpleMC3d" excludepackagenames="com.google.gwt.user.client,com.google.gwt.widgetideas.graphics.client,com.googlecode.gchart.client">
       <header><![CDATA[
 <script type="text/javascript" async
