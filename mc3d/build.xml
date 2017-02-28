@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="mc3d" default="build" basedir=".">
+  <!-- Arguments to gwtc and devmode targets -->
+  <property name="gwt.args" value="" />
+
+  <!-- Configure path to GWT SDK -->
+  <property name="gwt.sdk" location="/home/daniloefl/workspace/gwt-2.8.0" />
+
+  <path id="project.class.path">
+    <pathelement location="war/WEB-INF/classes"/>
+    <pathelement location="src/gchart.jar"/>
+    <pathelement location="src/gwt-incubator.jar"/>
+    <pathelement location="${gwt.sdk}/gwt-user.jar"/>
+    <pathelement location="${gwt.sdk}/gwt-dev.jar"/>
+    <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA.jar"/>
+    <pathelement location="${gwt.sdk}/validation-api-1.0.0.GA-sources.jar"/>
+    <fileset dir="war/WEB-INF/lib" includes="**/*.jar"/>
+    <!-- Add any additional non-server libs (such as JUnit) here -->
+  </path>
+
+  <target name="libs" description="Copy libs to WEB-INF/lib">
+    <mkdir dir="war/WEB-INF/lib" />
+    <copy todir="war/WEB-INF/lib" file="src/gchart.jar" />
+    <copy todir="war/WEB-INF/lib" file="src/gwt-incubator.jar" />
+    <copy todir="war/WEB-INF/lib" file="${gwt.sdk}/gwt-servlet.jar" />
+    <copy todir="war/WEB-INF/lib" file="${gwt.sdk}/gwt-servlet-deps.jar" />
+    <!-- Add any additional server libs that need to be copied -->
+  </target>
+
+  <target name="javac" depends="libs" description="Compile java source to bytecode">
+    <mkdir dir="war/WEB-INF/classes"/>
+    <javac srcdir="src" includes="**/shared/*.java,**/client/*.java" encoding="utf-8"
+        destdir="war/WEB-INF/classes"
+        source="1.7" target="1.7" nowarn="true"
+        debug="true" debuglevel="lines,vars,source">
+      <classpath refid="project.class.path"/>
+    </javac>
+    <copy todir="war/WEB-INF/classes">
+      <fileset dir="src" excludes="**/*.java"/>
+    </copy>
+  </target>
+
+  <target name="gwtc" depends="javac" description="GWT compile to JavaScript (production mode)">
+    <java failonerror="true" fork="true" classname="com.google.gwt.dev.Compiler" maxmemory="512m">
+      <classpath>
+        <pathelement location="src"/>
+        <path refid="project.class.path"/>
+      </classpath>
+      <arg line="-war"/>
+      <arg value="war"/>
+      <!-- Additional arguments like -style PRETTY or -logLevel DEBUG -->
+      <arg line="${gwt.args}"/>
+      <arg value="SimpleMC3d.SimpleMC3d"/>
+    </java>
+  </target>
+
+  <target name="devmode" depends="javac" description="Run development mode (pass -Dgwt.args=-nosuperDevMode to fallback to classic DevMode)">
+    <java failonerror="true" fork="true" classname="com.google.gwt.dev.DevMode" maxmemory="1g">
+      <classpath>
+        <pathelement location="src"/>
+        <path refid="project.class.path"/>
+        <pathelement location="${gwt.sdk}/gwt-codeserver.jar"/>
+      </classpath>
+      <arg value="-startupUrl"/>
+      <arg value="SimpleMC3dWebApp.html"/>
+      <arg line="-war"/>
+      <arg value="war"/>
+      <!-- Additional arguments like -style PRETTY, -logLevel DEBUG or -nosuperDevMode -->
+      <arg line="${gwt.args}"/>
+      <arg value="SimpleMC3d.SimpleMC3d"/>
+      <arg value="SimpleMC3d.SimpleMC3d"/>
+    </java>
+  </target>
+
+  <target name="build" depends="gwtc" description="Build this project" />
+
+  <target name="war" depends="gwtc" description="Create a war file">
+    <zip destfile="SimpleMC3d.war" basedir="war"/>
+  </target>
+
+  <target name="clean" description="Cleans this project">
+    <delete dir="war/WEB-INF/classes" failonerror="false" />
+    <delete dir="war/simplemc3d" failonerror="false" />
+  </target>
+
+  <target name="docs" depends="jws" description="Generate documentation">
+    <javadoc use="true" destdir="docs" additionalparam="--allow-script-in-comments" sourcepath="src/SimpleMC3d" excludepackagenames="com.google.gwt.user.client,com.google.gwt.widgetideas.graphics.client,com.googlecode.gchart.client">
+      <header><![CDATA[
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+    ]]></header>
+      <fileset dir="src/SimpleMC3d" includes="**/*.java" /> 
+      <classpath refid="project.class.path"/>
+    </javadoc>
+
+    <copy todir="docs/SimpleMC3d" file="war/SimpleMC3d.html"/>
+    <copy todir="docs/SimpleMC3d" file="war/SimpleMC3d.css"/>
+    <copy todir="docs/SimpleMC3d/simplemc3d">
+      <fileset dir="war/simplemc3d" includes="**"/>  
+    </copy>
+  </target>
+
+</project>
