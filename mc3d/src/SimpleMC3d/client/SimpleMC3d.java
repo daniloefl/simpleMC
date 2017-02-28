@@ -20,22 +20,9 @@ import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 
-import com.google.gwt.resources.client.ClientBundle;
-import com.google.gwt.resources.client.ImageResource;
-
 import com.google.gwt.user.client.ui.ToggleButton;
-import com.google.gwt.user.client.ui.FlowPanel;
 
-import thothbot.parallax.core.client.events.AnimationReadyEvent;
-import thothbot.parallax.core.client.events.AnimationReadyHandler;
-import thothbot.parallax.core.client.events.Context3dErrorEvent;
-import thothbot.parallax.core.client.events.Context3dErrorHandler;
-import thothbot.parallax.core.client.events.SceneLoadingEvent;
-import thothbot.parallax.core.client.events.SceneLoadingHandler;
-import com.google.gwt.user.client.ui.Image;
-import com.google.gwt.user.client.ui.Label;
-
-import  com.google.gwt.user.client.ui.RequiresResize;
+import com.google.gwt.user.client.Timer;
 
 /**
  * This is the entry point for the web application.
@@ -44,65 +31,101 @@ import  com.google.gwt.user.client.ui.RequiresResize;
  * scattering.
  * @author Danilo Ferreira de Lima <daniloefl@gmail.com>
  */
-public class SimpleMC3d implements EntryPoint, ResizeHandler, Context3dErrorHandler {
+public class SimpleMC3d implements EntryPoint {
 
   /**
    * Instance of the class used to draw results.
    */
   MassChart m_massChart;
 
+  // Contents of the plot
+  double [] x;
+  double [] y;
+
+  /**
+   * Adds an entry in the plot.
+   * @param e Event description
+   */
+  public void addInPlot(MCEvent e) {
+    double m = Math.sqrt(e.s());
+    for (int k = 0; k < x.length-1; ++k) {
+      if (x[k+1] > m) {
+        y[k] += 1;
+        break;
+      }
+    }
+  }
+
   /**
    * Updates the plot and the contents of all controls if needed.
    */
   public void updatePlot() {
-    double [] x = new double [10];
-    double [] y = new double [10];
     m_massChart.getMassData(x, y);
     m_massChart.update();
   }
 
   // Panel to draw on
   private RenderingPanel renderingPanel;
+  private SimpleMC3dScene scene;
 
-  // Resize handler
-  @Override
-  public void onResize(ResizeEvent event) {
-    Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
-      @Override
-      public void execute() {
-        renderingPanel.onResize();
-      }
-    });
-  }
+  // Object that reads and format input file
+  private Reader m_read;
 
-  // In case it is not supported
-  @Override
-  public void onContextError(Context3dErrorEvent event) {
-    RootPanel.get("scene").remove(renderingPanel);
-    final Label lbl = new Label();
-    lbl.setText("Your browser does not support WebGL.");
-    RootPanel.get("scene").add(lbl);
-  }
+  // Timer
+  private Timer timer;
 
   /**
    * This is the entry point method.
    */
   public void onModuleLoad() {
+    int N = 10;
+    double xmin = 70;
+    double dx = 5;
+    x = new double[N];
+    y = new double[N];
+    for (int k = 0; k < N; ++k) {
+      x[k] = xmin + k*dx;
+      y[k] = 0;
+    }
+
+    m_read = new Reader("simulations.txt");
+
     renderingPanel = new RenderingPanel();
     RootPanel.get("scene").add(renderingPanel);
 
+    Window.addResizeHandler(new ResizeHandler() {
+      @Override
+      public void onResize(ResizeEvent event) {
+        Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+          @Override
+          public void execute() {
+            renderingPanel.onResize();
+          }
+        });
+      }
+    });
+
+    // timer
+    timer = new Timer() {
+      @Override
+      public void run() {
+        MCEvent e = m_read.getNext();
+        scene.addInScene(e);
+        addInPlot(e);
+        updatePlot();
+        timer.schedule(5000);
+      }
+    };
+    timer.schedule(1);
+
     // Background color
     renderingPanel.setBackground(0x111111);
-    renderingPanel.addCanvas3dErrorHandler(this);
-
-    renderingPanel.setAnimatedScene(new SimpleMC3dScene());
+    scene = new SimpleMC3dScene();
+    renderingPanel.setAnimatedScene(scene);
 
     GChart.setCanvasFactory(new GWTCanvasBasedCanvasFactory());
     m_massChart = new MassChart();
     RootPanel.get("plot").add(m_massChart);
-
-    RootLayoutPanel.get().add(renderingPanel);
-    //RootLayoutPanel.get().add(m_massChart);
     updatePlot();
   }
 
