@@ -71,9 +71,9 @@ class SimpleMC3dScene extends AnimatedScene {
     /*
     camera.getPosition().setX(-500);
     camera.getPosition().setY(-500);
+    */
     camera.getPosition().setZ(1800);
     camera.lookAt(getScene().getPosition());
-    */
 
     time = 9;
   }
