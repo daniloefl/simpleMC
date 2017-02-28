@@ -5,7 +5,7 @@ according to the probability distribution of either the Bhabha scattering or ful
 electron-positron scattering.
 
 The code documentation can be found in <https://daniloefl.github.io/simpleMC/html/>.
-You can see a graphical result of the simulations here <https://daniloefl.github.io/simpleMC/SimpleMC3d.html/>.
+You can see a graphical result of the simulations here <https://daniloefl.github.io/simpleMC/SimpleMC3d.html>.
 
 The Analysis program can be used to convert the text file generated into a ROOT file
 for analysis into ROOT. However, the original MC generator is ROOT independent.
