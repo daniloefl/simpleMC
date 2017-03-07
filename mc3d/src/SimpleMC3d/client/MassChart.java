@@ -13,7 +13,7 @@ public class MassChart extends GChart {
   // Constructor
   MassChart() {
     setChartTitle("");
-    setChartSize(400, 300);
+    setChartSize(800, 600);
     setLegendYShift(-150);
 
     addCurve();
