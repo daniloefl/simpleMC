@@ -85,17 +85,17 @@ class SimpleMC3dScene extends AnimatedScene {
 
     l1 = new ArrowHelper(new Vector3(0, 0, 0), new Vector3(infinity, 0, 0));
     l2 = new ArrowHelper(new Vector3(0, 0, 0), new Vector3(-infinity, 0, 0));
-    l3 = new ArrowHelper(new Vector3(1, 0, 0), new Vector3(0, 0, 0));
-    l4 = new ArrowHelper(new Vector3(-1, 0, 0), new Vector3(0, 0, 0));
+    l3 = new ArrowHelper(new Vector3(1, 1, 1), new Vector3(0, 0, 0));
+    l4 = new ArrowHelper(new Vector3(1, 1, 1), new Vector3(0, 0, 0));
     l1.setColor(0x0000ff);
     l2.setColor(0xff0000);
     l3.setColor(0x0000ff);
     l4.setColor(0xff0000);
 
-    //getScene().add(l1);
-    //getScene().add(l2);
-    //getScene().add(l3);
-    //getScene().add(l4);
+    getScene().add(l1);
+    getScene().add(l2);
+    getScene().add(l3);
+    getScene().add(l4);
 
     camera.getPosition().setZ(1500);
     camera.lookAt(getScene().getPosition());
@@ -127,13 +127,9 @@ class SimpleMC3dScene extends AnimatedScene {
       beam2m.getPosition().setY(b2y+e.py[1]*t);
       beam2m.getPosition().setX(b2z+e.pz[1]*t);
 
-      l1.setDirection(new Vector3(b1z+e.pz[0]*t-infinity, b1y+e.py[0]*t, b1x+e.px[0]*t));
       l1.setLength(Math.abs(b1z+e.pz[0]*t-infinity));
-      l2.setDirection(new Vector3(b2z+e.pz[1]*t+infinity, b2y+e.py[1]*t, b2x+e.px[1]*t));
       l2.setLength(Math.abs(b2z+e.pz[1]*t-(-infinity)));
-      l3.setDirection(new Vector3(0, 0, 0));
       l3.setLength(0);
-      l4.setDirection(new Vector3(0, 0, 0));
       l4.setLength(0);
 
       time += dt;
@@ -152,13 +148,9 @@ class SimpleMC3dScene extends AnimatedScene {
       beam2m.getPosition().setY(b2y+e.py[3]*t);
       beam2m.getPosition().setX(b2z+e.pz[3]*t);
 
-      l1.setDirection(new Vector3(-infinity, 0, 0));
       l1.setLength(infinity);
-      l2.setDirection(new Vector3(infinity, 0, 0));
       l2.setLength(infinity);
-      l3.setDirection(new Vector3(e.pz[2]*t, e.py[2]*t, e.px[2]*t));
       l3.setLength(Math.sqrt(Math.pow(e.px[2]*t,2) + Math.pow(e.py[2]*t, 2) + Math.pow(e.pz[2]*t, 2)));
-      l4.setDirection(new Vector3(e.pz[3]*t, e.py[3]*t, e.px[3]*t));
       l4.setLength(Math.sqrt(Math.pow(e.px[3]*t,2) + Math.pow(e.py[3]*t, 2) + Math.pow(e.pz[3]*t, 2)));
 
       time += dt;
@@ -171,14 +163,13 @@ class SimpleMC3dScene extends AnimatedScene {
   public void addInScene(MCEvent _e) {
     e = _e;
     time = 0;
+
     l1.setDirection(new Vector3(-1, 0, 0));
-    l1.setLength(0);
     l2.setDirection(new Vector3(1, 0, 0));
-    l2.setLength(0);
-    l3.setDirection(new Vector3(-1, 0, 0));
-    l3.setLength(0);
-    l4.setDirection(new Vector3(1, 0, 0));
-    l4.setLength(0);
+    double norm3 = Math.sqrt(Math.pow(e.px[2],2) + Math.pow(e.py[2], 2) + Math.pow(e.pz[2], 2));
+    double norm4 = Math.sqrt(Math.pow(e.px[3],2) + Math.pow(e.py[3], 2) + Math.pow(e.pz[3], 2));
+    l3.setDirection(new Vector3(e.pz[2]/norm3, e.py[2]/norm3, e.px[2]/norm3));
+    l4.setDirection(new Vector3(e.pz[3]/norm4, e.py[3]/norm4, e.px[3]/norm4));
     getRenderer().render(getScene(), camera);
   }
 }
